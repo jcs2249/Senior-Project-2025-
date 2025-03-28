@@ -1,0 +1,349 @@
+<!-- 
+    Joseph Saponaro - Robert Bossert
+    v3
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Login</title>
+  <script src="Build/game.loader.js"></script> <!--this is the js file, we will need to code-->
+
+  <!--Buttons and layout RB-->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+      height: 100%;
+      width: 0;
+      position: fixed;
+      z-index: 1;
+      top: 0;
+      left: 0;
+      background-color: #111;
+      overflow-x: hidden;
+      transition: 0.5s;
+      padding-top: 60px;
+    }
+    .sidebar a {
+      padding: 10px 15px;
+      text-decoration: none;
+      font-size: 22px;
+      color: #f1f1f1;
+      display: block;
+      transition: 0.3s;
+    }
+    .sidebar a:hover {
+      background-color: #575757;
+    }
+    .sidebar .closebtn {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 36px;
+    }
+
+    /* Dropdown for opening the sidebar */
+    #menuButton {
+      font-size: 30px;
+      cursor: pointer;
+      color: #333;
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: none;
+      border: none;
+      outline: none;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      background-color: white;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    .input-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .mode-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    .mode-selector button {
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 200px;
+    }
+    #hostButton {
+      background-color: #4CAF50;
+      color: white;
+    }
+    #joinButton {
+      background-color: #2196F3;
+      color: white;
+    }
+    .mode-selector button:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+    .output {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    #unity-container {
+      margin-top: 20px;
+      width: 100%;
+      height: 600px;
+      display: none;
+    }
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      background: #231F20;
+    }
+    .lobby-info {
+      margin-top: 20px;
+      padding: 20px;
+      background-color: #e8f5e9;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .lobby-code {
+      font-size: 24px;
+      font-weight: bold;
+      padding: 15px;
+      background-color: white;
+      border-radius: 4px;
+      margin: 10px 0;
+      letter-spacing: 3px;
+    }
+    #copyButton {
+      background-color: #2196F3;
+      width: auto;
+      margin: 10px auto;
+    }
+    .back-button {
+      background-color: #757575;
+      width: auto;
+      padding: 8px 16px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar Navigation RB-->
+<div id="menuSidebar" class="sidebar">
+  <a href="javascript:void(0)" class="closebtn" onclick="closeSidebar()">&times;</a>
+  <a href="#" onclick="showAbout()">About</a>
+  <a href="#" onclick="showHowToPlay()">How to Play</a>
+  <a href="#" onclick="showSettings()">Settings</a>
+</div>
+
+<!-- Sidebar Dropdown RB-->
+<button id="menuButton" onclick="openSidebar()">&#9776; Menu</button>
+
+<div class="container">
+  <h2>Host or Join a Lobby!</h2>
+
+  <!-- Mode Selection JS -->
+  <div id="modeSelection">
+    <div class="mode-selector">
+      <button onclick="setMode('host')" id="hostButton">Create Game</button>
+      <button onclick="setMode('join')" id="joinButton">Join Game</button>
+    </div>
+  </div>
+
+  <!-- Host Lobby view-->
+  <div id="hostView" style="display: none;">
+    <button class="back-button" onclick="showModeSelection()">← Back</button>
+    <div class="input-group">
+      <label for="hostUsername">Host Username:</label>
+      <input type="text" id="hostUsername" placeholder="Enter your username" oninput="toggleHostButton()">
+    </div>
+    <button id="createLobbyButton" onclick="createLobby()" disabled>Create Lobby</button>
+
+    <div class="lobby-info" id="lobbyInfo" style="display: none;">
+      <h3>Lobby Created!</h3>
+      <p>Share this code with players:</p>
+      <div class="lobby-code" id="displayedLobbyCode"></div>
+      <button id="copyButton" onclick="copyLobbyCode()">Copy Code</button>
+      <p>Waiting for players to join...</p>
+    </div>
+  </div>
+
+  <!-- Player Join view -->
+  <div id="joinView" style="display: none;">
+    <button class="back-button" onclick="showModeSelection()">← Back</button>
+    <div class="input-group">
+      <label for="username">Username:</label>
+      <input type="text" id="username" placeholder="Enter your username" oninput="toggleJoinButton()">
+    </div>
+    <div class="input-group">
+      <label for="lobbyCode">Lobby Code:</label>
+      <input type="text" id="lobbyCode" placeholder="Enter lobby code" oninput="toggleJoinButton()" style="text-transform: uppercase;">
+    </div>
+    <button id="joinLobbyButton" onclick="joinLobby()" disabled>Join Game</button>
+  </div>
+
+  <div class="output" id="outputArea"></div>
+
+  <div id="unity-container">
+    <canvas id="unity-canvas"></canvas>
+  </div>
+</div>
+
+<!-- JavaScript Section -->
+<script>
+  // Sidebar functionality
+  function openSidebar() {
+    document.getElementById("mySidebar").style.width = "250px";
+  }
+  function closeSidebar() {
+    document.getElementById("mySidebar").style.width = "0";
+  }
+  function showAbout() {
+    alert("About: This is a multiplayer lobby system created for our game project.");
+    closeSidebar();
+  }
+  function showHowToPlay() {
+    alert("How to Play: Choose to host or join a game by entering your username and lobby code.");
+    closeSidebar();
+  }
+  function showSettings() {
+    alert("Settings: Feature coming soon!");
+    closeSidebar();
+  }
+
+  // Unity initialization - Doesn't work yet since there is no Unity game.
+  var unityInstance = null;
+  let currentMode = null;
+  document.addEventListener('DOMContentLoaded', function() {
+    createUnityInstance(document.querySelector("#unity-canvas"), {
+      dataUrl: "Build/game.data",
+      frameworkUrl: "Build/game.framework.js",
+      codeUrl: "Build/game.wasm",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "AARJ",
+      productName: "SENIORPROJECT",
+      productVersion: "1.0",
+    }).then((instance) => {
+      unityInstance = instance;
+      console.log("Unity initialized successfully");
+    }).catch((error) => {
+      console.error("Unity initialization failed:", error);
+    });
+  });
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('modeSelection').style.display = 'none';
+    document.getElementById('hostView').style.display = mode === 'host' ? 'block' : 'none';
+    document.getElementById('joinView').style.display = mode === 'join' ? 'block' : 'none';
+    document.getElementById('outputArea').innerHTML = '';
+  }
+
+  function showModeSelection() {
+    currentMode = null;
+    document.getElementById('modeSelection').style.display = 'block';
+    document.getElementById('hostView').style.display = 'none';
+    document.getElementById('joinView').style.display = 'none';
+    document.getElementById('lobbyInfo').style.display = 'none';
+    document.getElementById('outputArea').innerHTML = '';
+    document.getElementById('hostUsername').value = '';
+    document.getElementById('username').value = '';
+    document.getElementById('lobbyCode').value = '';
+  }
+
+  function toggleHostButton() {
+    const username = document.getElementById('hostUsername').value;
+    document.getElementById('createLobbyButton').disabled = !username.trim();
+  }
+
+  function toggleJoinButton() {
+    const username = document.getElementById('username').value;
+    const lobbyCode = document.getElementById('lobbyCode').value;
+    document.getElementById('joinLobbyButton').disabled = !(username.trim() && lobbyCode.trim());
+  }
+
+  function createLobby() {
+    const username = document.getElementById('hostUsername').value;
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    document.getElementById('lobbyInfo').style.display = 'block';
+    document.getElementById('displayedLobbyCode').textContent = code;
+    try {
+      if (unityInstance) {
+        unityInstance.SendMessage('GameManager', 'ReceiveLoginData', JSON.stringify({
+          username: username,
+          lobbyCode: code,
+          isHost: true
+        }));
+      } else {
+        throw new Error("Unity instance not initialized");
+      }
+    } catch (error) {
+      console.error('Error connecting to Unity game:', error);
+    }
+  }
+
+  function joinLobby() {
+    const username = document.getElementById('username').value;
+    const lobbyCode = document.getElementById('lobbyCode').value.toUpperCase();
+    try {
+      if (unityInstance) {
+        unityInstance.SendMessage('GameManager', 'ReceiveLoginData', JSON.stringify({
+          username: username,
+          lobbyCode: lobbyCode,
+          isHost: false
+        }));
+      } else {
+        throw new Error("Unity instance not initialized");
+      }
+    } catch (error) {
+      console.error('Error connecting to Unity game:', error);
+    }
+  }
+
+  function copyLobbyCode() {
+    const code = document.getElementById('displayedLobbyCode').textContent;
+    navigator.clipboard.writeText(code);
+    alert('Lobby code copied to clipboard!');
+  }
+</script>
+</body>
+</html>
