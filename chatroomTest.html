@@ -1,0 +1,409 @@
+<!--Sample chatroom I created to function with the webserver.py file which will open any of these files as long as the server is running-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat Room</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .hidden {
+      display: none;
+    }
+    h1, h2, h3 {
+      text-align: center;
+    }
+    .input-group {
+      margin: 15px 0;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input[type="text"] {
+      padding: 8px;
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    /* Styling the chat area, attempting to match the GameWebsite file */
+    #chatContainer {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+    #chatMessages {
+      height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f9f9f9;
+    }
+    .message {
+      margin-bottom: 8px;
+      padding: 5px;
+    }
+    .system-message {
+      color: #888;
+      font-style: italic;
+    }
+    .time {
+      color: #888;
+      font-size: 0.8em;
+    }
+    #chatInput {
+      display: flex;
+      padding: 10px;
+      background-color: #f0f0f0;
+    }
+    #messageInput {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .center-buttons {
+      text-align: center;
+      margin-top: 20px;
+    }
+    /* Styling user lists */
+    #userList {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    #userList h3 {
+      margin-top: 0;
+    }
+    .user-item {
+      padding: 5px;
+      margin: 2px 0;
+    }
+    .current-user {
+      font-weight: bold;
+    }
+    #statusMessage {
+      text-align: center;
+      color: #888;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Screent that shows the actual chatroom -->
+  <div class="container" id="chatRoom">
+    <h1>Chat Room</h1>
+    <div class="input-group">
+      <label for="username">Your Username:</label>
+      <input type="text" id="username" placeholder="Enter your username">
+    </div>
+    <div class="input-group">
+      <label for="lobbyCode">Room Code:</label>
+      <input type="text" id="lobbyCode" placeholder="Enter room code or leave blank to create new">
+    </div>
+    <div class="center-buttons">
+      <button onclick="joinChat()">Join Chat</button>
+    </div>
+  </div>
+
+  <!-- Chat Container -->
+  <div class="container hidden" id="chatContainerPanel">
+    <h2>Chat Room: <span id="roomCodeDisplay"></span></h2>
+    <div id="statusMessage"></div>
+    
+    <!-- User List -->
+    <div id="userList">
+      <h3>Users in Room</h3>
+      <div id="userListItems"></div>
+    </div>
+    
+    <div id="chatContainer">
+      <div id="chatMessages"></div>
+    </div>
+    <div id="chatInput">
+      <input type="text" id="messageInput" placeholder="Type your message...">
+      <button onclick="sendChatMessage()">Send</button>
+    </div>
+    <div class="center-buttons">
+      <button onclick="leaveChat()">Leave Chat</button>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const API_BASE_URL = ''; // Empty for same domain, or set to server URL if different
+    
+    // State variables
+    let currentUsername = '';
+    let currentLobbyCode = '';
+    let lastMessageTimestamp = 0;
+    let userUpdateInterval = null;
+    let messageUpdateInterval = null;
+    
+    // Generate a random room code if none is provided (Should add this into the GameWebsite it seems efficient)
+    function generateRoomCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+    
+    // Join the chat room
+    async function joinChat() {
+      const usernameInput = document.getElementById('username');
+      const lobbyCodeInput = document.getElementById('lobbyCode');
+      
+      const username = usernameInput.value.trim();
+      let lobbyCode = lobbyCodeInput.value.trim();
+      
+      if (!username) {
+        alert('Please enter a username!');
+        return;
+      }
+      
+      // Generate a room code if none provided
+      if (!lobbyCode) {
+        lobbyCode = generateRoomCode();
+      }
+      
+      currentUsername = username;
+      currentLobbyCode = lobbyCode;
+      
+      // Update the UI
+      document.getElementById('roomCodeDisplay').textContent = lobbyCode;
+      document.getElementById('statusMessage').textContent = 'Connecting...';
+      
+      try {
+        // Register user with the server
+        const response = await fetch(`${API_BASE_URL}/api/lobby/join`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: currentUsername,
+            lobbyCode: currentLobbyCode
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to join the chat room');
+        }
+        
+        // Hide join screen and show the chat panel
+        document.getElementById('chatRoom').classList.add('hidden');
+        document.getElementById('chatContainerPanel').classList.remove('hidden');
+        
+        // Add system messages
+        addChatMessage('System', `${currentUsername} has joined the chat`, true);
+        
+        // Send a join message to the chat when a user connects
+        await sendSystemMessage(`${currentUsername} has joined the chat`);
+        
+        // Start polling for updates
+        startPolling();
+        
+        document.getElementById('statusMessage').textContent = 'Connected';
+      } catch (error) {
+        console.error('Error joining chat:', error);
+        document.getElementById('statusMessage').textContent = 'Connection failed. Please try again.';
+      }
+    }
+    
+    // Leave the chat room
+    async function leaveChat() {
+      // Send a leave message to the chat
+      await sendSystemMessage(`${currentUsername} has left the chat`);
+      
+      // Stop polling
+      if (userUpdateInterval) clearInterval(userUpdateInterval);
+      if (messageUpdateInterval) clearInterval(messageUpdateInterval);
+      
+      // Reset interface
+      document.getElementById('chatContainerPanel').classList.add('hidden');
+      document.getElementById('chatRoom').classList.remove('hidden');
+      document.getElementById('chatMessages').innerHTML = '';
+      document.getElementById('userListItems').innerHTML = '';
+      document.getElementById('username').value = '';
+      document.getElementById('lobbyCode').value = '';
+      
+      // Reset state
+      currentUsername = '';
+      currentLobbyCode = '';
+      lastMessageTimestamp = 0;
+    }
+    
+    // Start polling for updates
+    function startPolling() {
+      // Poll for user updates every 3 seconds
+      userUpdateInterval = setInterval(updateUserList, 3000);
+      
+      // Poll for message updates every 1 second
+      messageUpdateInterval = setInterval(updateChatMessages, 1000);
+      
+      // Initial updates
+      updateUserList();
+      updateChatMessages();
+    }
+    
+    // Update the user list
+    async function updateUserList() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/lobby/users?lobbyCode=${currentLobbyCode}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch user list');
+        }
+        
+        const users = await response.json();
+        
+        // Update the user list in the UI
+        const userListItems = document.getElementById('userListItems');
+        userListItems.innerHTML = '';
+        
+        users.forEach(username => {
+          const userElement = document.createElement('div');
+          userElement.classList.add('user-item');
+          
+          if (username === currentUsername) {
+            userElement.classList.add('current-user');
+            userElement.textContent = `${username} (You)`;
+          } else {
+            userElement.textContent = username;
+          }
+          
+          userListItems.appendChild(userElement);
+        });
+      } catch (error) {
+        console.error('Error updating user list:', error);
+      }
+    }
+    
+    // Update chat messages
+    async function updateChatMessages() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/chat/messages?lobbyCode=${currentLobbyCode}&since=${lastMessageTimestamp}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch chat messages');
+        }
+        
+        const messages = await response.json();
+        
+        // Add new messages to the chat
+        messages.forEach(msg => {
+          addChatMessage(msg.username, msg.message, msg.username === 'System');
+          
+          // Update the last message timestamp
+          if (msg.timestamp > lastMessageTimestamp) {
+            lastMessageTimestamp = msg.timestamp;
+          }
+        });
+      } catch (error) {
+        console.error('Error updating chat messages:', error);
+      }
+    }
+    
+    // Send a chat message
+    async function sendChatMessage() {
+      const messageInput = document.getElementById('messageInput');
+      const message = messageInput.value.trim();
+      
+      if (!message) return;
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/chat/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: currentUsername,
+            lobbyCode: currentLobbyCode,
+            message: message,
+            timestamp: Date.now()
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to send message');
+        }
+        
+        // Clear input
+        messageInput.value = '';
+      } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Failed to send message. Please try again.');
+      }
+    }
+    
+    // Send a system message
+    async function sendSystemMessage(message) {
+      try {
+        await fetch(`${API_BASE_URL}/api/chat/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: 'System',
+            lobbyCode: currentLobbyCode,
+            message: message,
+            timestamp: Date.now()
+          })
+        });
+      } catch (error) {
+        console.error('Error sending system message:', error);
+      }
+    }
+    
+    // Add a chat message to the UI
+    function addChatMessage(sender, message, isSystem = false) {
+      const chatMessages = document.getElementById('chatMessages');
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message');
+      
+      if (isSystem) {
+        messageElement.classList.add('system-message');
+        messageElement.textContent = message;
+      } else {
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        messageElement.innerHTML = `<strong>${sender}:</strong> ${message} <span class="time">${time}</span>`;
+      }
+      
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Send chat message on Enter key
+    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    });
+  </script>
+</body>
+</html>
