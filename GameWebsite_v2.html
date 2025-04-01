@@ -1,0 +1,841 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />  
+  <title>Game Login</title>  
+    
+  <!-- Unity Loader Script -->  
+  <script src="Build/TestGame.loader.js"></script>  
+    
+  <!-- CSS styling for buttons and boxes -->  
+  <style>  
+    body {  
+      font-family: Arial, sans-serif;  
+      margin: 0;  
+      padding: 0;  
+      overflow-x: hidden;  
+    }  
+      
+    /* Sections styling */  
+    #modeSelection, #hostSetup, #joinSetup, #gameContainer {  
+      display: none;  
+      padding: 20px;  
+      max-width: 800px;  
+      margin: 0 auto;  
+    }  
+      
+    #modeSelection {  
+      display: block;  
+    }  
+      
+    /* Button styling */  
+    button {  
+      padding: 10px 20px;  
+      margin: 10px 5px;  
+      cursor: pointer;  
+      background-color: #4CAF50;  
+      color: white;  
+      border: none;  
+      border-radius: 5px;  
+    }  
+      
+    button:hover {  
+      background-color: #45a049;  
+    }  
+      
+    /* Input styling */  
+    input {  
+      padding: 10px;  
+      margin: 10px 0;  
+      width: 100%;  
+      box-sizing: border-box;  
+    }  
+      
+    /* Unity container styling */  
+    #unity-container {  
+      position: relative;  
+      width: 100%;  
+      height: 600px;  
+      background: #231F20;  
+    }  
+      
+    #unity-canvas {  
+      width: 100%;  
+      height: 100%;  
+    }  
+      
+    /* Displays lobby code */  
+    #lobbyCodeDisplay, #gameLobbyCodeDisplay {  
+      margin: 20px 0;  
+      padding: 15px;  
+      background-color: #f0f0f0;  
+      border-radius: 5px;  
+      text-align: center;  
+    }  
+    
+    /* Show us the users */
+    #lobbyUsers {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      color: #333;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 1000;
+      max-width: 250px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    /* Chat container to show messages */
+    #chatContainer {
+      margin-top: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    
+    #chatMessages {
+      height: 200px;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f9f9f9;
+    }
+    
+    .chatMessage {
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: #e9e9e9;
+    }
+    
+    .chatMessage .sender {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    
+    .chatMessage .timestamp {
+      font-size: 0.8em;
+      color: #777;
+      margin-left: 5px;
+    }
+    
+    .chatMessage.self {
+      background-color: #d1f0d1;
+      text-align: right;
+    }
+    
+    .chatMessage.system {
+      background-color: #e6f7ff;
+      font-style: italic;
+    }
+    
+    #chatInput {
+      display: flex;
+      padding: 10px;
+      background-color: #f0f0f0;
+    }
+    
+    #messageInput {
+      flex-grow: 1;
+      margin-right: 10px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    #sendButton {
+      padding: 8px 15px;
+      margin: 0;
+    }
+
+    .sidebar {
+      height: 100%;
+      width: 0;
+      position: fixed;
+      z-index: 1;
+      top: 0;
+      left: 0;
+      background-color: #111;
+      overflow-x: hidden;
+      transition: 0.5s;
+      padding-top: 60px;
+    }
+    .sidebar a {
+      padding: 10px 15px;
+      text-decoration: none;
+      font-size: 22px;
+      color: #f1f1f1;
+      display: block;
+      transition: 0.3s;
+    }
+    .sidebar a:hover {
+      background-color: #575757;
+    }
+    .sidebar .closebtn {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 36px;
+    }
+
+    #menuButton {
+      font-size: 30px;
+      cursor: pointer;
+      color: #333;
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: none;
+      border: none;
+      outline: none;
+    }
+
+  </style>  
+</head>  
+<body>  
+
+  <!-- setup selection for whether to join or host -->  
+  <div id="modeSelection">  
+    <h1>Welcome to the Game</h1>  
+    <p>Choose how you want to play:</p>  
+    <button onclick="showHostSetup()">Host a Game</button>  
+    <button onclick="showJoinSetup()">Join a Game</button>  
+  </div>  
+    
+  <!-- Host Setup Section -->  
+  <div id="hostSetup">  
+    <h2>Host a Game</h2>  
+    <label for="hostUsername">Your Username:</label>  
+    <input type="text" id="hostUsername" placeholder="Enter your username">  
+    <button onclick="hostGame()">Create Lobby</button>  
+    <button onclick="backToModeSelection()">Back</button>  
+      
+    <div id="lobbyCodeDisplay" style="display: none;">  
+      <h3>Your Lobby Code:</h3>  
+      <span id="generatedLobbyCode"></span>  
+      <p>Share this code with your friends so they can join your game.</p>  
+    </div>  
+  </div>  
+    
+  <!-- Join Setup Section -->  
+  <div id="joinSetup">  
+    <h2>Join a Game</h2>  
+    <label for="joinUsername">Your Username:</label>  
+    <input type="text" id="joinUsername" placeholder="Enter your username">  
+    <label for="lobbyCode">Lobby Code:</label>  
+    <input type="text" id="lobbyCode" placeholder="Enter the lobby code">  
+    <button onclick="joinGame()">Join Game</button>  
+    <button onclick="backToModeSelection()">Back</button>  
+  </div>  
+    
+  <!-- Container to hold unity game -->  
+  <div id="gameContainer">  
+    <h2>Game Room</h2>
+    
+    <!-- Game Lobby Code Display (visible for both host and players) -->
+    <div id="gameLobbyCodeDisplay">
+      <h3>Lobby Code: <span id="currentLobbyCode"></span></h3>
+      <p>Share this code with your friends so they can join your game.</p>
+    </div>
+    
+    <!-- Chat Container -->
+    <div id="chatContainer">
+      <div id="chatMessages"></div>
+      <div id="chatInput">
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button id="sendButton" onclick="sendChatMessage()">Send</button>
+      </div>
+    </div>
+    
+    <button onclick="leaveGame()">Leave Game</button>  
+      
+    <!-- Unity Game Container -->  
+    <div id="unity-container">  
+      <canvas id="unity-canvas"></canvas>  
+      <div id="unity-loading" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);">Loading Unity Game...</div>  
+      <div id="unity-error" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display:none; color:red;">Failed to load the Unity game.</div>  
+    </div>  
+  </div>  
+  
+  <!-- Lobby Users Overlay -->
+  <div id="lobbyUsers">
+    <h3>Players in Lobby</h3>
+    <div>Waiting for lobby code...</div>
+  </div>
+
+  <div id="mySidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeSidebar()">&times;</a>
+    <a href="#" onclick="showAbout()">About</a>
+    <a href="#" onclick="showHowToPlay()">How to Play</a>
+    <a href="#" onclick="showSettings()">Settings</a>
+  </div>
+
+  <button id="menuButton" onclick="openSidebar()">&#9776; Menu</button>
+    
+  <!-- JavaScript Code -->  
+  <script>  
+    // Global variables  
+    var currentMode = '';  
+    var unityInstance = null;
+    var lobbyUpdateInterval = null;
+    var chatUpdateInterval = null;
+    var currentUsername = '';
+    var lastMessageTimestamp = 0;
+      
+    // Navigation functions  
+    function showHostSetup() {  
+      document.getElementById('modeSelection').style.display = 'none';  
+      document.getElementById('hostSetup').style.display = 'block';  
+    }  
+      
+    function showJoinSetup() {  
+      document.getElementById('modeSelection').style.display = 'none';  
+      document.getElementById('joinSetup').style.display = 'block';  
+    }  
+      
+    function backToModeSelection() {  
+      document.getElementById('hostSetup').style.display = 'none';  
+      document.getElementById('joinSetup').style.display = 'none';  
+      document.getElementById('modeSelection').style.display = 'block';  
+    }  
+      
+    // Host game function  
+    function hostGame() {  
+      var username = document.getElementById('hostUsername').value.trim();  
+      if (!username) {  
+        alert('Please enter a username.');  
+        return;  
+      }  
+      
+      // Store the username of the host
+      currentUsername = username;
+        
+      // Generate a random lobby code  
+      var lobbyCode = generateLobbyCode();  
+      document.getElementById('generatedLobbyCode').textContent = lobbyCode;  
+      document.getElementById('lobbyCodeDisplay').style.display = 'block';  
+      
+      // Also set the lobby code in the game container
+      document.getElementById('currentLobbyCode').textContent = lobbyCode;
+        
+      // Show the game container  
+      document.getElementById('hostSetup').style.display = 'none';  
+      document.getElementById('gameContainer').style.display = 'block';  
+        
+      // Load our Unity game  
+      loadUnityGame();  
+      
+      // Set current mode
+      currentMode = 'host';
+      
+      // Add host to the lobby
+      addUserToLobby(username, true);
+      
+      // Start lobby updates
+      startLobbyUpdates();
+      
+      // Start chat updates doesnt seem to show anything
+         startChatUpdates();
+      
+      // Add system message that host has created the lobby
+      addSystemChatMessage(username + ' has created the lobby');
+    }  
+      
+    // Join game function  
+    function joinGame() {  
+      var username = document.getElementById('joinUsername').value.trim();  
+      var lobbyCode = document.getElementById('lobbyCode').value.trim();  
+        
+      if (!username || !lobbyCode) {  
+        alert('Please enter both username and lobby code.');  
+        return;  
+      }  
+      
+      // Store the username
+      currentUsername = username;
+        
+      // Eventually will need to verify lobby code with server (this bug allows any user to join
+      // a lobby and it just creates another lobby regardless of whether they are host or not 
+      
+      // Set the lobby code in the game container
+      document.getElementById('currentLobbyCode').textContent = lobbyCode;
+        
+      // Show game container  
+      document.getElementById('joinSetup').style.display = 'none';  
+      document.getElementById('gameContainer').style.display = 'block';  
+        
+      // Load Unity game for the joined user  
+      loadUnityGame();  
+      
+      // Set current mode
+      currentMode = 'join';
+      
+      // Add user to the lobby
+      addUserToLobby(username, false);
+      
+      // Start lobby updates
+      startLobbyUpdates();
+      
+      // Start chat updates
+         startChatUpdates();
+      
+      // Add system message that user has joined the lobby
+      addSystemChatMessage(username + ' has joined the lobby');
+    }  
+      
+    // Leave game function  
+    function leaveGame() {  
+      // Need to notify the server that a player is left ***
+      
+      // Add system message that user has left the lobby see ***
+      if (currentUsername) {
+        addSystemChatMessage(currentUsername + ' has left the lobby');
+      }
+        
+      // Unload Unity game 
+      if (unityInstance) {  
+        unityInstance.Quit();  
+        unityInstance = null;  
+      }  
+        
+      // Stop lobby updates see ***
+      if (lobbyUpdateInterval) {
+        clearInterval(lobbyUpdateInterval);
+        lobbyUpdateInterval = null;
+      }
+      
+      // Stop chat updates
+      if (chatUpdateInterval) {
+        clearInterval(chatUpdateInterval);
+        chatUpdateInterval = null;
+      }
+      
+      // Reset username
+      currentUsername = '';
+      
+      // Hide game container and show mode selection  
+      document.getElementById('gameContainer').style.display = 'none';  
+      document.getElementById('modeSelection').style.display = 'block';  
+      document.getElementById('lobbyCodeDisplay').style.display = 'none';  
+    }  
+      
+    // Random lobby code generator  
+    function generateLobbyCode() {  
+      var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';  
+      var code = '';  
+      for (var i = 0; i < 6; i++) {  
+        code += characters.charAt(Math.floor(Math.random() * characters.length));  
+      }  
+      return code;  
+    }  
+      
+    // Load Unity game  
+    function loadUnityGame() {  
+      var buildUrl = "Build";  
+      var loaderUrl = buildUrl + "/TestGame.loader.js";  
+      var config = {  
+        dataUrl: buildUrl + "/TestGame.data",  
+        frameworkUrl: buildUrl + "/TestGame.framework.js",  
+        codeUrl: buildUrl + "/TestGame.wasm",  
+        streamingAssetsUrl: "StreamingAssets",  
+        companyName: "YourCompany",  
+        productName: "YourGame",  
+        productVersion: "1.0",  
+      };  
+        
+      var loadingBar = document.querySelector("#unity-loading");  
+      var errorDisplay = document.querySelector("#unity-error");  
+        
+      createUnityInstance(document.querySelector("#unity-canvas"), config)  
+        .then(function (instance) {  
+          unityInstance = instance;  
+          loadingBar.style.display = "none";  
+        })  
+        .catch(function (error) {  
+          console.error(error);  
+          errorDisplay.style.display = "block";  
+          errorDisplay.textContent = "Error loading Unity game: " + error.message;  
+        });  
+    }
+    
+    // Function to update the lobby users list
+    function updateLobbyUsers() {
+      let lobbyCode = null;
+      
+      if (currentMode === 'host') {
+        // For host mode, get the generated lobby code
+        const codeElement = document.getElementById('generatedLobbyCode');
+        if (codeElement) {
+          lobbyCode = codeElement.textContent.trim();
+        }
+      } else if (currentMode === 'join') {
+        // For join mode, get the entered lobby code
+        const codeInput = document.getElementById('lobbyCode');
+        if (codeInput) {
+          lobbyCode = codeInput.value.trim();
+        }
+      }
+      
+      // If we're in the game, we can also get the code from the game display
+      if (!lobbyCode) {
+        const currentCodeElement = document.getElementById('currentLobbyCode');
+        if (currentCodeElement) {
+          lobbyCode = currentCodeElement.textContent.trim();
+        }
+      }
+      
+      // If no lobby code is available, show waiting message
+      if (!lobbyCode) {
+        document.getElementById('lobbyUsers').innerHTML = '<h3>Players in Lobby</h3><div>Waiting for lobby code...</div>';
+        return;
+      }
+      
+      console.log('Fetching users for lobby:', lobbyCode);
+      
+      // Fetch the current users in the lobby (seems to work perfectly)
+      fetch(`/api/lobby/users?lobbyCode=${lobbyCode}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(users => {
+          const lobbyDiv = document.getElementById('lobbyUsers');
+          lobbyDiv.innerHTML = '<h3>Players in Lobby</h3>';
+          
+          // Check if users is an array
+          if (Array.isArray(users)) {
+            if (users.length === 0) {
+              lobbyDiv.innerHTML += '<div>No players yet</div>';
+            } else {
+              users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.textContent = user.username + (user.isHost ? ' (Host)' : '');
+                lobbyDiv.appendChild(userItem);
+              });
+            }
+          } else {
+            lobbyDiv.innerHTML += '<div>No users found</div>';
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch users:', err);
+          document.getElementById('lobbyUsers').innerHTML = '<h3>Players in Lobby</h3><div>Error loading players</div>';
+          
+          // Can comment this out but im leaving it for now to simulate some mock usrs 
+          simulateUsers();
+        });
+    }
+    
+    // Function to simulate users for demo purposes
+    function simulateUsers() {
+      const lobbyDiv = document.getElementById('lobbyUsers');
+      lobbyDiv.innerHTML = '<h3>Players in Lobby</h3>';
+      
+      // Add current user
+      const userItem = document.createElement('div');
+      userItem.textContent = currentUsername + (currentMode === 'host' ? ' (Host)' : '');
+      lobbyDiv.appendChild(userItem);
+      
+      // Add some simulated users
+      if (currentMode === 'host') {
+        const simulatedUsers = ['Player2', 'Player3', 'Player4'];
+        simulatedUsers.forEach(user => {
+          const userItem = document.createElement('div');
+          userItem.textContent = user;
+          lobbyDiv.appendChild(userItem);
+        });
+      }
+    }
+    
+    // Function to start lobby updates
+    function startLobbyUpdates() {
+      // Clear any existing interval
+      if (lobbyUpdateInterval) {
+        clearInterval(lobbyUpdateInterval);
+      }
+      
+      // Update immediately
+      updateLobbyUsers();
+      
+      // Then update every 5 seconds
+      lobbyUpdateInterval = setInterval(updateLobbyUsers, 5000);
+      console.log('Started lobby updates with 5-second interval');
+    }
+    
+    // Function to add the current user to the lobby
+    function addUserToLobby(username, isHost) {
+      let lobbyCode = null;
+      
+      if (currentMode === 'host') {
+        const codeElement = document.getElementById('generatedLobbyCode');
+        if (codeElement) {
+          lobbyCode = codeElement.textContent.trim();
+        }
+      } else if (currentMode === 'join') {
+        const codeInput = document.getElementById('lobbyCode');
+        if (codeInput) {
+          lobbyCode = codeInput.value.trim();
+        }
+      }
+      
+      // If we're in the game, we can also get the code from the game display
+      if (!lobbyCode) {
+        const currentCodeElement = document.getElementById('currentLobbyCode');
+        if (currentCodeElement) {
+          lobbyCode = currentCodeElement.textContent.trim();
+        }
+      }
+      
+      if (!lobbyCode || !username) {
+        console.error('Missing lobby code or username');
+        return;
+      }
+      
+      fetch('/api/lobby/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          lobbyCode: lobbyCode,
+          username: username,
+          isHost: isHost
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('User added to lobby:', data);
+        updateLobbyUsers();
+      })
+      .catch(err => {
+        console.error('Failed to add user to lobby:', err);
+        // For demo purposes, simulate success
+        simulateUsers();
+      });
+    }
+
+    function openSidebar() {
+      document.getElementById("mySidebar").style.width = "250px";
+    }
+    function closeSidebar() {
+      document.getElementById("mySidebar").style.width = "0";
+    }
+    function showAbout() {
+      closeSidebar();
+    }
+    function showHowToPlay() {
+      closeSidebar();
+    }
+    function showSettings() {
+      closeSidebar();
+    }
+    
+// Chat Functions (needs work)
+
+// Function to send a chat message (Right now, i cant get any input to go into the chat box,
+//even though in the web console, it shows that the keys are being pressed, it seems like whenever
+//the unity game is loaded at the same time as the chat, the chat breaks. I was able to load just the chat and it worked fine.
+function sendChatMessage() {
+  const messageInput = document.getElementById('messageInput');
+  const message = messageInput.value.trim();
+  
+  if (!message) {
+    return;
+  }
+  
+  // Clear the input
+  messageInput.value = '';
+  
+  // Get the lobby code
+  let lobbyCode = document.getElementById('currentLobbyCode').textContent.trim();
+  
+  // Send the message to the server
+  fetch('/api/chat/send', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      lobbyCode: lobbyCode,
+      username: currentUsername,
+      message: message,
+      timestamp: new Date().getTime()
+    })
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('Message sent:', data);
+    // Add the message to the chat
+    addChatMessage(currentUsername, message, new Date().getTime(), true);
+  })
+  .catch(err => {
+    console.error('Failed to send message:', err);
+    // For demo purposes, simulate success
+    addChatMessage(currentUsername, message, new Date().getTime(), true);
+  });
+}
+
+// Function to add a chat message to the UI
+function addChatMessage(username, message, timestamp, isSelf) {
+  const chatMessages = document.getElementById('chatMessages');
+  const messageElement = document.createElement('div');
+  messageElement.className = 'chatMessage' + (isSelf ? ' self' : '');
+  
+  const senderElement = document.createElement('span');
+  senderElement.className = 'sender';
+  senderElement.textContent = username + ':';
+  
+  const messageTextElement = document.createElement('span');
+  messageTextElement.className = 'messageText';
+  messageTextElement.textContent = ' ' + message;
+  
+  const timestampElement = document.createElement('span');
+  timestampElement.className = 'timestamp';
+  timestampElement.textContent = formatTimestamp(timestamp);
+  
+  messageElement.appendChild(senderElement);
+  messageElement.appendChild(messageTextElement);
+  messageElement.appendChild(timestampElement);
+  
+  chatMessages.appendChild(messageElement);
+  
+  // Scroll to the bottom
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  
+  // Update the last message timestamp
+  lastMessageTimestamp = Math.max(lastMessageTimestamp, timestamp);
+}
+
+// Function to add a system message to the chat
+function addSystemChatMessage(message) {
+  const chatMessages = document.getElementById('chatMessages');
+  const messageElement = document.createElement('div');
+  messageElement.className = 'chatMessage system';
+  
+  const messageTextElement = document.createElement('span');
+  messageTextElement.className = 'messageText';
+  messageTextElement.textContent = message;
+  
+  const timestampElement = document.createElement('span');
+  timestampElement.className = 'timestamp';
+  timestampElement.textContent = formatTimestamp(new Date().getTime());
+  
+  messageElement.appendChild(messageTextElement);
+  messageElement.appendChild(timestampElement);
+  
+  chatMessages.appendChild(messageElement);
+  
+  // Scroll to the bottom
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Function to format a timestamp
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return ` ${hours}:${minutes}`;
+}
+
+// Function to fetch new chat messages
+function fetchChatMessages() {
+  let lobbyCode = document.getElementById('currentLobbyCode').textContent.trim();
+  
+  fetch(`/api/chat/messages?lobbyCode=${lobbyCode}&since=${lastMessageTimestamp}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(messages => {
+      if (Array.isArray(messages) && messages.length > 0) {
+        messages.forEach(msg => {
+          // Only add messages from other users (our own messages are added when sent)
+          if (msg.username !== currentUsername) {
+            addChatMessage(msg.username, msg.message, msg.timestamp, false);
+          }
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Failed to fetch messages:', err);
+      // For demo purposes, simulate some messages occasionally
+      //simulateChatMessages();
+    });
+}
+  
+// Function to start chat polling  
+function startChatPolling() {  
+  // Clear any existing interval  
+  if (chatPollingInterval) {  
+    clearInterval(chatPollingInterval);  
+  }  
+    
+  // Poll for new messages every 2 seconds  
+  chatPollingInterval = setInterval(fetchChatMessages, 2000);  
+    
+  // Add initial system message  
+  addSystemChatMessage('Welcome to the chat! Messages will appear here.');  
+}  
+  
+// Function to stop chat polling  
+function stopChatPolling() {  
+  if (chatPollingInterval) {  
+    clearInterval(chatPollingInterval);  
+    chatPollingInterval = null;  
+  }  
+}  
+  
+// Function to initialize chat when joining a lobby  
+function initializeChat(username) {  
+  currentUsername = username;  
+  lastMessageTimestamp = 0;  
+    
+  // Clear existing messages  
+  const chatMessages = document.getElementById('chatMessages');  
+  chatMessages.innerHTML = '';  
+    
+  // Start polling for messages  
+  startChatPolling();  
+}  
+  
+// Event listeners  
+document.addEventListener('DOMContentLoaded', function() {  
+  // Add event listener for the send button  
+  const sendButton = document.getElementById('sendMessageButton');  
+  if (sendButton) {  
+    sendButton.addEventListener('click', sendChatMessage);  
+  }  
+    
+  // Add event listener for Enter key in message input  
+  const messageInput = document.getElementById('messageInput');  
+if (messageInput) {  
+  messageInput.addEventListener('keypress', function(e) {  
+    console.log('Key pressed:', e.key);  
+    if (e.key === 'Enter') {  
+      console.log('Enter detected, sending chat message');  
+      sendChatMessage();  
+    }  
+  });  
+} else {  
+  console.error('messageInput element not found');  
+}  
+})
+  </script>  
+</body>  
+</html>
