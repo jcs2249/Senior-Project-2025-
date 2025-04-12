@@ -1,0 +1,103 @@
+Download
+Copy
+<!DOCTYPE html>  
+<html>  
+<head>  
+   <title>Simple WebSocket Client</title>  
+   <style>  
+       body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }  
+       #log { height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin: 10px 0; }  
+       .controls { margin: 10px 0; }  
+       button { padding: 5px 10px; margin-right: 5px; }  
+       input { padding: 5px; width: 300px; }  
+   </style>  
+</head>  
+<body>  
+   <h1>Simple WebSocket Client</h1>  
+     
+   <div class="controls">  
+       <button id="connect">Connect</button>  
+       <button id="disconnect">Disconnect</button>  
+       <span id="status">Disconnected</span>  
+   </div>  
+     
+   <div class="controls">  
+       <input id="message" type="text" placeholder="Type a message...">  
+       <button id="send">Send</button>  
+   </div>  
+     
+   <h3>Messages:</h3>  
+
+   <script>  
+    let socket;  
+    const log = document.getElementById('log');  
+    const status = document.getElementById('status');  
+      
+    function addLog(message) {  
+        const timestamp = new Date().toLocaleTimeString();  
+        log.textContent += `[${timestamp}] ${message}\n`;  
+        log.scrollTop = log.scrollHeight;  
+    }  
+      
+    document.getElementById('connect').addEventListener('click', () => {  
+        if (socket) {  
+            addLog('Already connected');  
+            return;  
+        }  
+          
+        socket = new WebSocket('ws://localhost:8765');  
+          
+        socket.onopen = () => {  
+            addLog('Connected to server');  
+            status.textContent = 'Connected';  
+        };  
+          
+        socket.onmessage = (event) => {  
+            addLog(`Received: ${event.data}`);  
+        };  
+          
+        socket.onerror = (error) => {  
+            addLog(`Error: ${error}`);  
+        };  
+          
+        socket.onclose = (event) => {  
+            addLog(`Disconnected: code=${event.code}, reason=${event.reason}`);  
+            status.textContent = 'Disconnected';  
+            socket = null;  
+        };  
+    });  
+      
+    document.getElementById('disconnect').addEventListener('click', () => {  
+        if (socket) {  
+            socket.close();  
+            socket = null;  
+            addLog('Disconnected by user');  
+            status.textContent = '';  
+        }  
+    });  
+      
+    document.getElementById('send').addEventListener('click', () => {  
+        const message = document.getElementById('message').value;  
+        if (!message) {  
+            addLog('Please enter a message');  
+            return;  
+        }  
+          
+        if (socket && socket.readyState === WebSocket.OPEN) {  
+            socket.send(message);  
+            addLog(`Sent: ${message}`);  
+            document.getElementById('message').value = '';  
+        } else {  
+            addLog('Not connected!');  
+        }  
+    });  
+      
+    // Allow pressing Enter to send a message  
+    document.getElementById('message').addEventListener('keypress', (event) => {  
+        if (event.key === 'Enter') {  
+            document.getElementById('send').click();  
+        }  
+    });  
+</script>  
+</body>
+</html>
