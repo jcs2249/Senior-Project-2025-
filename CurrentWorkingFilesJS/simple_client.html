@@ -1,0 +1,215 @@
+<!-- Joseph Saponaro Apr 14th 2025
+Working version of html website, able to communicate back and forth with unity game
+Needs to go into a folder called static in the same directory as server.py
+Much shorter and cleaner than original html site as alot of the functions are in Unity
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trivia Game</title>
+  <!--Styling Options go here-->
+  <style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #121212;
+    color: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+
+  #main, .card {
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.05);
+    transition: transform 0.2s ease;
+  }
+
+  .card:hover {
+    transform: scale(1.01);
+  }
+
+  h3 {
+    margin-top: 0;
+    color: #00ffff;
+  }
+
+  #chatbox {
+    height: 200px;
+    overflow-y: auto;
+    border: 1px solid #333;
+    padding: 10px;
+    background-color: #181818;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .message { margin-bottom: 8px; }
+  .admin { color: #00bfff; }
+  .client { color: #32cd32; }
+
+  input[type="text"] {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background-color: #222;
+    color: #eee;
+    width: 100%;
+    margin-top: 8px;
+    font-size: 14px;
+  }
+
+  button {
+    padding: 10px 15px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: #00bfff;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #009acd;
+    transform: scale(1.03);
+  }
+
+  .vote-buttons button {
+    background-color: #ff8800;
+    margin-right: 10px;
+  }
+
+  .vote-buttons button:hover {
+    background-color: #ff6600;
+  }
+
+  #questionText {
+    font-size: 18px;
+    font-weight: bold;
+    color: #f9f871;
+  }
+
+  #userList, #scoreList {
+    font-size: 14px;
+    color: #ccc;
+  }
+
+  #hiddenContent {
+    display: none;
+  }
+</style>
+  </style>
+
+</head>
+<body>
+  <div id="main">
+    <div class="card">
+      <strong>Username:</strong>
+      <input type="text" id="username" placeholder="Enter your name" />
+      <button onclick="joinGame()">Join Game</button>
+    </div>
+
+    <div id="hiddenContent">
+      <div class="card"><h3>Current Question</h3><div id="questionText">Waiting for question...</div></div>
+      <div class="card"><h3>Vote for a Topic</h3>
+        <div class="vote-buttons">
+          <button onclick="sendVote('Science')">Science</button>
+          <button onclick="sendVote('History')">History</button>
+          <button onclick="sendVote('Geography')">Geography</button>
+        </div>
+      </div>
+      <div class="card"><h3>Your Answer</h3>
+        <input type="text" id="answer" placeholder="Type your answer here" />
+        <button onclick="submitAnswer()">Submit Answer</button>
+      </div>
+      <div class="card"><h3>Chat</h3>
+        <div id="chatbox"></div>
+        <input type="text" id="message" placeholder="Type a message" />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card"><h3>Online Users</h3><div id="userList">No users yet.</div></div>
+    <div class="card"><h3>Leaderboard</h3><ul id="scoreList"></ul></div>
+  </div>
+
+  <script>
+    let hasJoined = false;
+    const ws = new WebSocket("wss://aarj.ngrok.io/ws");
+
+    const usernameInput = document.getElementById("username");
+    const messageInput = document.getElementById("message");
+    const answerInput = document.getElementById("answer");
+    const chatBox = document.getElementById("chatbox");
+    const questionText = document.getElementById("questionText");
+    const scoreList = document.getElementById("scoreList");
+    const userList = document.getElementById("userList");
+    const hiddenContent = document.getElementById("hiddenContent");
+
+    function getUsername() {
+      return usernameInput.value.trim() || "Anon";
+    }
+
+    function joinGame() {
+      const name = getUsername();
+      if (!hasJoined && name !== "") {
+        ws.send(`Join:${name}`);
+        hiddenContent.style.display = "block";
+        hasJoined = true;
+      }
+    }
+
+    function sendMessage() {
+      const msg = messageInput.value.trim();
+      if (msg) {
+        ws.send(`Chat:${getUsername()}:${msg}`);
+        messageInput.value = "";
+      }
+    }
+
+    function sendVote(topic) {
+      ws.send(`Vote:${getUsername()}:${topic}`);
+    }
+
+    function submitAnswer() {
+      const answer = answerInput.value.trim();
+      if (answer) {
+        ws.send(`Answer:${getUsername()}:${answer}`);
+        answerInput.value = "";
+      }
+    }
+
+    ws.onmessage = (event) => {
+      const msg = event.data;
+      if (msg.startsWith("Question:")) {
+        questionText.textContent = msg.slice(9).trim();
+      } else if (msg.startsWith("Leaderboard:")) {
+        const lines = msg.split("\n").slice(1);
+        scoreList.innerHTML = lines.map(line => `<li>${line}</li>`).join("");
+      } else if (msg.startsWith("Users:")) {
+        const users = msg.slice(6).split(",");
+        userList.textContent = users.join("\n");
+      } else {
+        const div = document.createElement("div");
+        div.className = "message admin";
+        div.textContent = msg;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    };
+
+    messageInput.addEventListener("keyup", e => e.key === "Enter" && sendMessage());
+    answerInput.addEventListener("keyup", e => e.key === "Enter" && submitAnswer());
+  </script>
+</body>
+</html>
