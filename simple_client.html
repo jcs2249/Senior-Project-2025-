@@ -1,103 +1,255 @@
-Download
-Copy
-<!DOCTYPE html>  
-<html>  
-<head>  
-   <title>Simple WebSocket Client</title>  
-   <style>  
-       body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }  
-       #log { height: 200px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin: 10px 0; }  
-       .controls { margin: 10px 0; }  
-       button { padding: 5px 10px; margin-right: 5px; }  
-       input { padding: 5px; width: 300px; }  
-   </style>  
-</head>  
-<body>  
-   <h1>Simple WebSocket Client</h1>  
-     
-   <div class="controls">  
-       <button id="connect">Connect</button>  
-       <button id="disconnect">Disconnect</button>  
-       <span id="status">Disconnected</span>  
-   </div>  
-     
-   <div class="controls">  
-       <input id="message" type="text" placeholder="Type a message...">  
-       <button id="send">Send</button>  
-   </div>  
-     
-   <h3>Messages:</h3>  
+<!-- Joseph Saponaro Apr 14th 2025
+Working version of html website, able to communicate back and forth with unity game
+Needs to go into a folder called static in the same directory as server.py
+Much shorter and cleaner than original html site as alot of the functions are in Unity
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spy Trivia Interface</title>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Special Elite', monospace;
+      background-color: #eeeeee;
+      color: #111;
+      margin: 0;
+      padding: 20px;
+      background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+      background-repeat: repeat;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
 
-   <script>  
-    let socket;  
-    const log = document.getElementById('log');  
-    const status = document.getElementById('status');  
-      
-    function addLog(message) {  
-        const timestamp = new Date().toLocaleTimeString();  
-        log.textContent += `[${timestamp}] ${message}\n`;  
-        log.scrollTop = log.scrollHeight;  
-    }  
-      
-    document.getElementById('connect').addEventListener('click', () => {  
-        if (socket) {  
-            addLog('Already connected');  
-            return;  
-        }  
-          
-        socket = new WebSocket('ws://localhost:8765');  
-          
-        socket.onopen = () => {  
-            addLog('Connected to server');  
-            status.textContent = 'Connected';  
-        };  
-          
-        socket.onmessage = (event) => {  
-            addLog(`Received: ${event.data}`);  
-        };  
-          
-        socket.onerror = (error) => {  
-            addLog(`Error: ${error}`);  
-        };  
-          
-        socket.onclose = (event) => {  
-            addLog(`Disconnected: code=${event.code}, reason=${event.reason}`);  
-            status.textContent = 'Disconnected';  
-            socket = null;  
-        };  
-    });  
-      
-    document.getElementById('disconnect').addEventListener('click', () => {  
-        if (socket) {  
-            socket.close();  
-            socket = null;  
-            addLog('Disconnected by user');  
-            status.textContent = '';  
-        }  
-    });  
-      
-    document.getElementById('send').addEventListener('click', () => {  
-        const message = document.getElementById('message').value;  
-        if (!message) {  
-            addLog('Please enter a message');  
-            return;  
-        }  
-          
-        if (socket && socket.readyState === WebSocket.OPEN) {  
-            socket.send(message);  
-            addLog(`Sent: ${message}`);  
-            document.getElementById('message').value = '';  
-        } else {  
-            addLog('Not connected!');  
-        }  
-    });  
-      
-    // Allow pressing Enter to send a message  
-    document.getElementById('message').addEventListener('keypress', (event) => {  
-        if (event.key === 'Enter') {  
-            document.getElementById('send').click();  
-        }  
-    });  
-</script>  
+    .card {
+      background: #fff;
+      border: 2px solid #000;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 2px 2px 0 #000;
+      margin-bottom: 10px;
+      opacity: 0;
+      animation: fadeIn 1s ease-out forwards;
+    }
+
+    h3 {
+      margin-top: 0;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      font-family: 'Special Elite', monospace;
+      border: 2px solid #000;
+      background-color: #f9f9f9;
+      caret-color: black;
+      animation: blinkCursor 1s step-end infinite;
+    }
+
+    input[type="text"]::placeholder {
+      color: #444;
+      font-style: italic;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-family: 'Special Elite', monospace;
+      font-size: 16px;
+      border: 2px solid #000;
+      background-color: #ddd;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    button:hover {
+      background-color: #bbb;
+    }
+
+    #chatbox {
+      height: 150px;
+      overflow-y: auto;
+      border: 2px dashed #000;
+      padding: 10px;
+      background-color: #f0f0f0;
+    }
+
+    .message { margin-bottom: 6px; }
+
+    .typewriter {
+      overflow: hidden;
+      white-space: nowrap;
+      display: inline-block;
+      animation: typewriter 2s steps(40, end) forwards;
+    }
+
+    .cursor {
+      border-right: 2px solid black;
+      animation: blinkCursor 0.8s step-end infinite;
+    }
+
+    @keyframes typewriter {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes blinkCursor {
+      0%, 100% { border-right-color: black; }
+      50% { border-right-color: transparent; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #transmission {
+      display:none;
+      position:fixed;
+      top:0; left:0; right:0;
+      background:#000;
+      color:#0f0;
+      text-align:center;
+      padding:10px;
+      font-weight:bold;
+      font-family: 'Special Elite';
+      z-index:999;
+    }
+  </style>
+</head>
+<body>
+  <div id="transmission">Transmission Received</div>
+
+  <div id="main">
+    <div class="card">
+      <strong>Agent Name:</strong>
+      <input type="text" id="username" placeholder="Enter Agent Name" />
+      <button onclick="joinGame()">Join Mission</button>
+    </div>
+
+    <div id="hiddenContent" style="display: none;">
+      <div class="card"><h3>Current Briefing</h3><div id="questionText" class="typewriter cursor">Awaiting Intel...</div></div>
+      <div class="card">
+        <h3>Vote Assignment</h3>
+        <button onclick="sendVote('Science')">Science</button>
+        <button onclick="sendVote('History')">History</button>
+        <button onclick="sendVote('Geography')">Geography</button>
+        <button onclick="sendVote('Literature')">Literature</button>
+        <button onclick="sendVote('Movies')">Movies</button>
+      </div>
+      <div class="card">
+        <h3>Field Report</h3>
+        <input type="text" id="answer" placeholder="Enter your answer" />
+        <button onclick="submitAnswer()">Submit</button>
+      </div>
+      <div class="card">
+        <h3>Comms</h3>
+        <div id="chatbox"></div>
+        <input type="text" id="message" placeholder="Type a message" />
+        <button onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card"><h3>Agents Online</h3><div id="userList">No agents online.</div></div>
+    <div class="card"><h3>Leaderboard</h3><ul id="scoreList"></ul></div>
+  </div>
+
+  <script>
+    let hasJoined = false;
+    const ws = new WebSocket("wss://aarj.ngrok.io/ws");
+
+    const usernameInput = document.getElementById("username");
+    const messageInput = document.getElementById("message");
+    const answerInput = document.getElementById("answer");
+    const chatBox = document.getElementById("chatbox");
+    const questionText = document.getElementById("questionText");
+    const scoreList = document.getElementById("scoreList");
+    const userList = document.getElementById("userList");
+    const hiddenContent = document.getElementById("hiddenContent");
+
+    function getUsername() {
+      return usernameInput.value.trim() || "Agent X";
+    }
+
+    function joinGame() {
+      const name = getUsername();
+      if (!hasJoined && name !== "") {
+        ws.send(`Join:${name}`);
+        hiddenContent.style.display = "block";
+        hiddenContent.classList.add("fade-in");
+        hasJoined = true;
+      }
+    }
+
+    function sendMessage() {
+      const msg = messageInput.value.trim();
+      if (msg) {
+        ws.send(`Chat:${getUsername()}:${msg}`);
+        messageInput.value = "";
+      }
+    }
+
+    function sendVote(topic) {
+      ws.send(`Vote:${getUsername()}:${topic}`);
+    }
+
+    function submitAnswer() {
+      const answer = answerInput.value.trim();
+      if (answer) {
+        ws.send(`Answer:${getUsername()}:${answer}`);
+        answerInput.value = "";
+      }
+    }
+
+    function animateTypewriter(text) {
+      questionText.classList.remove("typewriter", "cursor");
+      void questionText.offsetWidth;
+      questionText.textContent = text;
+      questionText.classList.add("typewriter", "cursor");
+      setTimeout(() => {
+        questionText.classList.remove("cursor");
+      }, 2000);
+    }
+
+    function showTransmissionBanner() {
+      const banner = document.getElementById("transmission");
+      banner.style.display = "block";
+      setTimeout(() => banner.style.display = "none", 1000);
+    }
+
+    ws.onmessage = (event) => {
+      const msg = event.data;
+      if (msg.startsWith("Question:")) {
+        showTransmissionBanner();
+        animateTypewriter(msg.slice(9).trim());
+      } else if (msg.startsWith("Leaderboard:")) {
+        const lines = msg.split("\n").slice(1);
+        scoreList.innerHTML = lines.map(line => `<li>${line}</li>`).join("");
+      } else if (msg.startsWith("Users:")) {
+        const users = msg.slice(6).split(",").filter(u => !u.startsWith("client_"));
+        userList.innerHTML = users.map(user => `<div>${user}</div>`).join("");
+      } else {
+        if (!msg.includes(":")) return;
+        const senderName = msg.split(":")[0];
+        if (senderName.startsWith("client_")) return;
+
+        const div = document.createElement("div");
+        div.className = "message";
+        div.textContent = msg;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    };
+
+    messageInput.addEventListener("keyup", e => e.key === "Enter" && sendMessage());
+    answerInput.addEventListener("keyup", e => e.key === "Enter" && submitAnswer());
+  </script>
 </body>
 </html>
