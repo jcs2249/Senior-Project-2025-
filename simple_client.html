@@ -14,14 +14,12 @@ Much shorter and cleaner than original html site as alot of the functions are in
     body {
       font-family: 'Special Elite', monospace;
       background-color: #eeeeee;
-      color: #111;
       margin: 0;
       padding: 20px;
       background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
       background-repeat: repeat;
       display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
+      grid-template-columns: 1fr;
     }
 
     .card {
@@ -31,44 +29,24 @@ Much shorter and cleaner than original html site as alot of the functions are in
       border-radius: 8px;
       box-shadow: 2px 2px 0 #000;
       margin-bottom: 10px;
-      opacity: 0;
-      animation: fadeIn 1s ease-out forwards;
     }
 
-    h3 {
-      margin-top: 0;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
+    h3 { margin-top: 0; }
 
     input[type="text"] {
       width: 100%;
       padding: 8px;
-      font-family: 'Special Elite', monospace;
+      font-family: 'Special Elite';
       border: 2px solid #000;
       background-color: #f9f9f9;
-      caret-color: black;
-      animation: blinkCursor 1s step-end infinite;
-    }
-
-    input[type="text"]::placeholder {
-      color: #444;
-      font-style: italic;
     }
 
     button {
-      padding: 10px 20px;
-      font-family: 'Special Elite', monospace;
-      font-size: 16px;
+      padding: 10px;
+      font-family: 'Special Elite';
       border: 2px solid #000;
       background-color: #ddd;
       cursor: pointer;
-      text-transform: uppercase;
-    }
-
-    button:hover {
-      background-color: #bbb;
     }
 
     #chatbox {
@@ -79,91 +57,112 @@ Much shorter and cleaner than original html site as alot of the functions are in
       background-color: #f0f0f0;
     }
 
-    .message { margin-bottom: 6px; }
-
-    .typewriter {
-      overflow: hidden;
-      white-space: nowrap;
-      display: inline-block;
-      animation: typewriter 2s steps(40, end) forwards;
+    .message {
+      margin-bottom: 6px;
     }
 
-    .cursor {
-      border-right: 2px solid black;
-      animation: blinkCursor 0.8s step-end infinite;
+    #votePanel {
+      display: none;
+      margin-top: 10px;
     }
 
-    @keyframes typewriter {
-      from { width: 0; }
-      to { width: 100%; }
+    #roundDisplay, #timerDisplay {
+      font-weight: bold;
+      margin-bottom: 10px;
     }
 
-    @keyframes blinkCursor {
-      0%, 100% { border-right-color: black; }
-      50% { border-right-color: transparent; }
+    #missionOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: black;
+      color: white;
+      font-size: 24px;
+      text-align: center;
+      padding: 20px;
+      z-index: 1000;
+      display: none;
+      animation: blink 1s linear infinite;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
-    #transmission {
-      display:none;
-      position:fixed;
-      top:0; left:0; right:0;
-      background:#000;
-      color:#0f0;
-      text-align:center;
-      padding:10px;
-      font-weight:bold;
-      font-family: 'Special Elite';
-      z-index:999;
+    #introScreen {
+      display: block;
+    }
+
+    #gameInterface {
+      display: none;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
     }
   </style>
 </head>
 <body>
-  <div id="transmission">Transmission Received</div>
-
-  <div id="main">
-    <div class="card">
-      <strong>Agent Name:</strong>
-      <input type="text" id="username" placeholder="Enter Agent Name" />
+  <div id="introScreen">
+    <div class="card" style="max-width: 400px; margin: 100px auto; text-align: center;">
+      <h2>Enter Agent Name</h2>
+      <input type="text" id="username" placeholder="Agent Codename" />
+      <br><br>
       <button onclick="joinGame()">Join Mission</button>
     </div>
+  </div>
 
-    <div id="hiddenContent" style="display: none;">
-      <div class="card"><h3>Current Briefing</h3><div id="questionText" class="typewriter cursor">Awaiting Intel...</div></div>
+  <div id="gameInterface">
+    <div id="missionOverlay">MISSION STARTING...</div>
+
+    <audio id="sysBeep" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1cb4d650e8.mp3" preload="auto"></audio>
+
+    <div>
       <div class="card">
-        <h3>Vote Assignment</h3>
-        <button onclick="sendVote('Science')">Science</button>
-        <button onclick="sendVote('History')">History</button>
-        <button onclick="sendVote('Geography')">Geography</button>
-        <button onclick="sendVote('Literature')">Literature</button>
-        <button onclick="sendVote('Movies')">Movies</button>
+        <div id="roundDisplay">Round: 0</div>
+        <div id="timerDisplay">Time Left: <span id="countdown">--</span> seconds</div>
+        <div><strong>Briefing:</strong></div>
+        <div id="questionText">Awaiting Intel...</div>
       </div>
-      <div class="card">
-        <h3>Field Report</h3>
-        <input type="text" id="answer" placeholder="Enter your answer" />
-        <button onclick="submitAnswer()">Submit</button>
-      </div>
+
       <div class="card">
         <h3>Comms</h3>
         <div id="chatbox"></div>
         <input type="text" id="message" placeholder="Type a message" />
         <button onclick="sendMessage()">Send</button>
       </div>
+
+      <div class="card">
+        <h3>Vote Assignment</h3>
+        <div id="votePanel">
+          <button onclick="sendVote('Science')">Science</button>
+          <button onclick="sendVote('History')">History</button>
+          <button onclick="sendVote('Geography')">Geography</button>
+          <button onclick="sendVote('Literature')">Literature</button>
+          <button onclick="sendVote('Movies')">Movies</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Submit Answer</h3>
+        <input type="text" id="answer" placeholder="Enter your answer" />
+        <button onclick="submitAnswer()">Submit</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card"><h3>Agents Online</h3><div id="userList">No agents online.</div></div>
+      <div class="card"><h3>Leaderboard</h3><ul id="scoreList"></ul></div>
     </div>
   </div>
 
-  <div>
-    <div class="card"><h3>Agents Online</h3><div id="userList">No agents online.</div></div>
-    <div class="card"><h3>Leaderboard</h3><ul id="scoreList"></ul></div>
-  </div>
-
   <script>
+    let ws = new WebSocket("wss://aarj.ngrok.io/ws");
     let hasJoined = false;
-    const ws = new WebSocket("wss://aarj.ngrok.io/ws");
+    let roundCount = 0;
+    let canAnswer = false;
+    let countdown = 0;
+    let timerInterval = null;
 
     const usernameInput = document.getElementById("username");
     const messageInput = document.getElementById("message");
@@ -172,19 +171,21 @@ Much shorter and cleaner than original html site as alot of the functions are in
     const questionText = document.getElementById("questionText");
     const scoreList = document.getElementById("scoreList");
     const userList = document.getElementById("userList");
-    const hiddenContent = document.getElementById("hiddenContent");
+    const votePanel = document.getElementById("votePanel");
+    const missionOverlay = document.getElementById("missionOverlay");
 
     function getUsername() {
-      return usernameInput.value.trim() || "Agent X";
+      return usernameInput.value.trim() || "Anon";
     }
 
     function joinGame() {
       const name = getUsername();
       if (!hasJoined && name !== "") {
         ws.send(`Join:${name}`);
-        hiddenContent.style.display = "block";
-        hiddenContent.classList.add("fade-in");
         hasJoined = true;
+
+        document.getElementById("introScreen").style.display = "none";
+        document.getElementById("gameInterface").style.display = "grid";
       }
     }
 
@@ -197,10 +198,13 @@ Much shorter and cleaner than original html site as alot of the functions are in
     }
 
     function sendVote(topic) {
-      ws.send(`Vote:${getUsername()}:${topic}`);
+      if (canAnswer) {
+        ws.send(`Vote:${getUsername()}:${topic}`);
+      }
     }
 
     function submitAnswer() {
+      if (!canAnswer) return;
       const answer = answerInput.value.trim();
       if (answer) {
         ws.send(`Answer:${getUsername()}:${answer}`);
@@ -208,48 +212,71 @@ Much shorter and cleaner than original html site as alot of the functions are in
       }
     }
 
-    function animateTypewriter(text) {
-      questionText.classList.remove("typewriter", "cursor");
-      void questionText.offsetWidth;
-      questionText.textContent = text;
-      questionText.classList.add("typewriter", "cursor");
-      setTimeout(() => {
-        questionText.classList.remove("cursor");
-      }, 2000);
+    function startCountdown(seconds) {
+      clearInterval(timerInterval);
+      countdown = seconds;
+      document.getElementById("countdown").textContent = countdown;
+      timerInterval = setInterval(() => {
+        countdown--;
+        document.getElementById("countdown").textContent = countdown;
+        if (countdown <= 0) {
+          clearInterval(timerInterval);
+          document.getElementById("countdown").textContent = "0";
+        }
+      }, 1000);
     }
 
-    function showTransmissionBanner() {
-      const banner = document.getElementById("transmission");
-      banner.style.display = "block";
-      setTimeout(() => banner.style.display = "none", 1000);
+    function showSystemMessage(text) {
+      const div = document.createElement("div");
+      div.className = "message";
+      div.style.fontStyle = "italic";
+      div.textContent = "[SYSTEM] " + text;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      document.getElementById("sysBeep").play().catch(() => {});
     }
 
     ws.onmessage = (event) => {
       const msg = event.data;
+
       if (msg.startsWith("Question:")) {
-        showTransmissionBanner();
-        animateTypewriter(msg.slice(9).trim());
+        questionText.textContent = msg.slice(9).trim();
       } else if (msg.startsWith("Leaderboard:")) {
         const lines = msg.split("\n").slice(1);
         scoreList.innerHTML = lines.map(line => `<li>${line}</li>`).join("");
       } else if (msg.startsWith("Users:")) {
         const users = msg.slice(6).split(",").filter(u => !u.startsWith("client_"));
         userList.innerHTML = users.map(user => `<div>${user}</div>`).join("");
+      } else if (msg.includes("Vote now")) {
+        roundCount++;
+        document.getElementById("roundDisplay").textContent = "Round: " + roundCount;
+        startCountdown(30);
+        canAnswer = true;
+        votePanel.style.display = "block";
+        missionOverlay.style.display = "none";
+      } else if (msg.includes("Time's up")) {
+        canAnswer = false;
+        votePanel.style.display = "none";
+        showSystemMessage("Time's up!");
+      } else if (msg.includes("MISSION STARTING")) {
+        canAnswer = false;
+        votePanel.style.display = "none";
+        missionOverlay.style.display = "block";
+        showSystemMessage("MISSION STARTING...");
       } else {
-        if (!msg.includes(":")) return;
-        const senderName = msg.split(":")[0];
-        if (senderName.startsWith("client_")) return;
-
-        const div = document.createElement("div");
-        div.className = "message";
-        div.textContent = msg;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        const sender = msg.split(":")[0];
+        if (!sender.startsWith("client_")) {
+          const div = document.createElement("div");
+          div.className = "message";
+          div.textContent = msg;
+          chatBox.appendChild(div);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
       }
     };
 
     messageInput.addEventListener("keyup", e => e.key === "Enter" && sendMessage());
-    answerInput.addEventListener("keyup", e => e.key === "Enter" && submitAnswer());
+    answerInput?.addEventListener("keyup", e => e.key === "Enter" && submitAnswer());
   </script>
 </body>
 </html>

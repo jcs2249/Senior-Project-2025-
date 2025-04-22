@@ -18,6 +18,7 @@ connected_clients = {}
 user_scores = defaultdict(int)
 user_votes = defaultdict(str)
 current_question = {"topic": None, "text": "", "answer": ""}
+accepting_answers = True  # 🔐 Flag for timer-based answer cutoff
 
 questions = {
     "Science": [
@@ -69,6 +70,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
+
             if data.startswith("Join:"):
                 username = data.split(":", 1)[1].strip()
                 if temp_name in connected_clients:
@@ -95,25 +97,33 @@ async def websocket_endpoint(websocket: WebSocket):
                         current_question["topic"] = winning_topic
                         current_question["text"] = q["question"]
                         current_question["answer"] = q["answer"]
+                        global accepting_answers
+                        accepting_answers = True
                         await broadcast(f"Question: {q['question']}")
                         user_votes.clear()
 
             elif data.startswith("Answer:"):
                 _, name, answer = data.split(":", 2)
                 correct = answer.strip().lower() == current_question["answer"].lower()
-                await broadcast(f"{name} answered {'correctly' if correct else 'incorrectly'}.")
-                if correct:
+                if correct and accepting_answers:
                     user_scores[name] += 1
+                    await broadcast(f"{name} answered correctly.")
+                else:
+                    await broadcast(f"{name} answered {'correctly' if correct else 'incorrectly'}, but scoring is {'open' if accepting_answers else 'closed'}.")
                 await update_leaderboard()
 
             elif data.startswith("HostCommand:"):
                 command = data.split(":", 1)[1].strip().upper()
                 if command == "NEXT":
+                    accepting_answers = True
                     await broadcast("Host is starting the next round. Vote now!")
                 elif command == "RESET":
                     user_scores.clear()
                     await broadcast("Scores have been reset!")
                     await update_leaderboard()
+                elif command == "ROUNDOVER":
+                    accepting_answers = False
+                    await broadcast("Time's up! No more scoring until next round.")
 
     except WebSocketDisconnect:
         for name, ws_ref in list(connected_clients.items()):
