@@ -18,32 +18,69 @@ connected_clients = {}
 user_scores = defaultdict(int)
 user_votes = defaultdict(str)
 current_question = {"topic": None, "text": "", "answer": ""}
-accepting_answers = True  # 🔐 Flag for timer-based answer cutoff
+accepting_answers = True  #Flag for timer-based answer cutoff
 
+#Question dictionary for the trivia
 questions = {
-    "Science": [
-        {"question": "What planet is known as the Red Planet?", "answer": "Mars"},
-        {"question": "What gas do plants absorb from the atmosphere?", "answer": "Carbon Dioxide"},
-        {"question": "What is the chemical symbol for water?", "answer": "H2O"},
-    ],
-    "History": [
-        {"question": "Who discovered America?", "answer": "Christopher Columbus"},
-        {"question": "What year did World War II end?", "answer": "1945"},
-        {"question": "Who was the first President of the United States?", "answer": "George Washington"},
-    ],
-    "Geography": [
-        {"question": "What is the largest ocean on Earth?", "answer": "Pacific Ocean"},
-        {"question": "Which continent is the Sahara Desert located in?", "answer": "Africa"},
-        {"question": "What is the capital of France?", "answer": "Paris"},
-    ],
-    "Literature": [
-        {"question": "Who wrote '1984'?", "answer": "George Orwell"},
-        {"question": "What is the name of Sherlock Holmes’ assistant?", "answer": "Dr. Watson"},
-    ],
-    "Movies": [
-        {"question": "Who directed Jurassic Park?", "answer": "Steven Spielberg"},
-        {"question": "Which film features the quote 'I am your father'?", "answer": "The Empire Strikes Back"},
-    ]
+
+  "Lizards": [
+    {"question": "- (Options: -, -, -, -)", "answer": "-"},
+    {"question": "Which of the following Gecko types do *not* have sticky toe-pads? (Options: Crested Geckos, Giant Cave Geckos, Leopard Geckos, Tokay Geckos)", "answer": "Leopard Geckos"},
+    {"question": "How do crested geckos get rid of their sheds? (Options: They Burn It, They Eat It, They Give it to a Friend, They Throw it Away)", "answer": "They Eat It"},
+    {"question": "What lizard has two clusters of fingers? (Options: Anole, Bearded Dragon, Chameleon, Gila Monster)", "answer": "Chameleon"},
+    {"question": "What do Plated Lizards eat? (Options: All of the Above, Fruit, Insects, Other Lizards)", "answer": "All of the Above"},
+    {"question": "Tegus are bigger than Komodo Dragons (Options: -, -, -, False)", "answer": "False"},
+    {"question": "Salamanders are a type of lizard (Options: -, -, -, False)", "answer": "False"},
+  ],
+    "Spy": [
+    {"question": "Which is NOT one of the steps in the CIA's Intelligence Cycle? (Options: Collection, Dissemination, Production, Protection)", "answer": "Protection"},
+    {"question": "Which of the following is NOT a real spy tool used in the past? (Options: Cigarette Packet Detonator, Dog Doo Transmitter, Insectothopter, The Lipstick Pistol)", "answer": "Cigarette Packet Detonator"},
+    {"question": "Which cryptid is associated with the state of Pennsylvania? (Options: The Bigfoot, The Momo, The Squonk, The Wendigo)", "answer": "The Squonk"},
+    {"question": "- (Options: -, -, -, -)", "answer": "-"},
+    {"question": "The first Spy vs Spy comic strip was released in January 1961 (Options: -, -, -, True)", "answer": "True"},
+    {"question": "George Washington was a Spymaster (Options: -, -, -, True)", "answer": "True"},
+    {"question": "In cyber security, CIA stands for Confidentiality, Integrity, and Access (Options: -, -, -, False)", "answer": "False"},
+    {"question": "Skin-Walkers are the cryptid often associated with Wyoming (Options: -, -, -, False)", "answer": "False"},
+    {"question": "On which continent can lizards *not* be found? (Options: -, -, -, Antarctica)", "answer": "Antarctica"},
+    {"question": "Which continent are Bearded Dragons native to? (Options: -, -, -, Australia)", "answer": "Australia"},
+    {"question": "This phrase is often used to describe animals whose body temperature fluctuates with their surroundings (2 words) (Options: -, -, -, Cold Blooded)", "answer": "Cold Blooded"},
+    {"question": "Which U.S. State has the Gila Monster as its state reptile? (Options: -, -, -, Utah)", "answer": "Utah"},
+    {"question": "What is the name of the secret code that utilizes dots and dashes? (Options: -, -, -, Morse Code)", "answer": "Morse Code"},
+    {"question": "This substance used for secret writing could be revealed using heat, ultraviolet light, or a specific chemical (Options: -, -, -, Invisible Ink)", "answer": "Invisible Ink"},
+    {"question": "This species of bird was often outfitted with cameras for espionage or tasked with carrying messages during World War I (Options: -, -, -, Pigeon)", "answer": "Pigeon"},
+    {"question": "Originating in 1953, this fictional Secret Service Agent nicknamed 007 featured in at least 12 novels and 2 story collections written by their creator (Options: -, -, -, James Bond)", "answer": "James Bond"},
+    {"question": "Originally intended for use in radar-based detection, this form of electromagnetic radiation is now used to heat food (plural answer) (Options: -, -, -, Microwaves)", "answer": "Microwaves"},
+    {"question": "Previously issued as an undergarment by the US Navy, this short-sleeved article of clothing became widely accepted as a form of outerwear by the 1950s  (Options: -, -, -, T-Shirt)", "answer": "T-Shirt"},
+    {"question": "In 1928, Walter E. Diemer created a new formula of bubble gum that improved on its 1906 predecessor. What did Diemer name it? (Options: -, -, -, Double Bubble)", "answer": "Double Bubble"},
+    {"question": "In 1930, what we now know as the Chocolate Chip Cookie was invented at an inn by accident. What was it called originally? (Options: -, -, -, Toll House Cookie)", "answer": "Toll House Cookie"},
+    {"question": "What is the name of the most notorious entity rumored to reside within one of Scotland's many bodies of water? (Options: -, -, -, Loch Ness Monster)", "answer": "Loch Ness Monster"},
+    {"question": "What is the name of the military installation that is often associated with extraterrestrial activity? (Options: -, -, -, Area 51)", "answer": "Area 51"},
+    {"question": "Originating from a movie released in the early 1980's, this fictional alien befriends a 10-year-old boy while trying to find a way back to his people (Options: -, -, -, ET)", "answer": "ET"},
+    {"question": "Existing as a form of pseudoscience, this term describes the study of and search for undiscovered (and often legendary) animals (Options: -, -, -, Cryptozoology)", "answer": "Cryptozoology"},
+    {"question": "Written as ...---... in Morse Code, this acronym is used as a distress signal in emergency situations (Options: -, -, -, SOS)", "answer": "SOS"},
+    {"question": "Complete the sentence: According to NASA, the four basic needs for survival include Food, Water, Air, and ______ (Options: -, -, -, Shelter)", "answer": "Shelter"},
+    {"question": "What type of natural disaster is typically denoted by a drastic change in sea level after an earthquake? (Options: -, -, -, Tsunami)", "answer": "Tsunami"},
+    {"question": "On average, around how many days can someone survive without water (numerical value)? (Options: -, -, -, 3)", "answer": "3"},
+  ],
+
+  "Supernatural": [
+    {"question": "Which U.S. state has the most reported UFO sightings? (Options: California, Florida, Nevada, Washington)", "answer": "California"},
+    {"question": "Which of the following is NOT a New Jersey urban legend? (Options: Captain Kidd, Salem Church Road, The Leeds Devil, The White Stag)", "answer": "Salem Church Road"},
+    {"question": "Which of the following is a tool used for ghost hunting? (Options: All of the Above, EMF Reader, Spirit Box, Thermal Imaging Camera)", "answer": "All of the Above"},
+    {"question": "- (Options: -, -, -, -)", "answer": "-"},
+    {"question": "It is believed that salt can be used to repel ghosts and demons (Options: -, -, -, True)", "answer": "True"},
+    {"question": "Washington has the most reported Bigfoot sightings out of all of the U.S. states (Options: -, -, -, True)", "answer": "True"},
+  ],
+
+  "Survival": [
+    {"question": "Which is NOT one of the steps in the 3-part method to extinguish a fire on your person? (Options: Drop, Jump, Roll, Stop)", "answer": "Jump"},
+    {"question": "When performing CPR on a baby, which of the following should be used for chest compressions? (Options: None of the Above, One Hand, Two Fingers, Two Hands)", "answer": "Two Fingers"},
+    {"question": "- (Options: -, -, -, -)", "answer": "-"},
+    {"question": "Basilisks can run on water (Options: -, -, -, True)", "answer": "True"},
+    {"question": "It is a smart idea to boil unfiltered water before drinking it (Options: -, -, -, True)", "answer": "True"},
+    {"question": "Water should never be used to extinguish a grease fire (Options: -, -, -, True)", "answer": "True"},
+    {"question": "Wild snakes in the U.S. are safe to handle so long as they are not a pit viper (which are notoriously venomous) (Options: -, -, -, False)", "answer": "False"},
+  ],
 }
 
 async def broadcast(message: str):
