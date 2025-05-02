@@ -1,0 +1,294 @@
+<!-- Joseph Saponaro Apr 14th 2025
+Working version of html website, able to communicate back and forth with unity game
+Needs to go into a folder called static in the same directory as server.py
+Much shorter and cleaner than original html site as alot of the functions are in Unity
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spy Trivia Interface</title>
+  <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Special Elite', monospace;
+      background-color: #eeeeee;
+      margin: 0;
+      padding: 20px;
+      background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+      background-repeat: repeat;
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .card {
+      background: #fff;
+      border: 2px solid #000;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 2px 2px 0 #000;
+      margin-bottom: 10px;
+    }
+
+    h3 { margin-top: 0; }
+
+    input[type="text"] {
+      width: 600px;
+      padding: 8px;
+      font-family: 'Special Elite';
+      border: 2px solid #000;
+      background-color: #f9f9f9;
+    }
+
+    input[type="text"], button {
+      margin-top: 8px;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      font-size: 16px;
+      line-height: 1.2;
+      height: 36px;
+      box-sizing: border-box;
+      vertical-align: middle;
+    }
+
+    button {
+      padding: 10px;
+      font-family: 'Special Elite';
+      border: 2px solid #000;
+      background-color: #ddd;
+      cursor: pointer;
+    }
+
+    #chatbox {
+      height: 150px;
+      overflow-y: auto;
+      border: 2px dashed #000;
+      padding: 10px;
+      background-color: #f0f0f0;
+    }
+
+    .message {
+      margin-bottom: 6px;
+    }
+
+    #votePanel {
+      display: none;
+      margin-top: 10px;
+    }
+
+    #roundDisplay, #timerDisplay {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    #missionOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: black;
+      color: white;
+      font-size: 24px;
+      text-align: center;
+      padding: 20px;
+      z-index: 1000;
+      display: none;
+      animation: blink 1s linear infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    #introScreen {
+      display: block;
+      font-size: 30px;
+    }
+
+    #gameInterface {
+      display: none;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+  </style>
+</head>
+<body>
+<div id="introScreen">
+  <div class="card" style="max-width: 750px; padding: 60px 40px; margin: 100px auto; text-align: center;">
+    <h2>Enter Agent Name</h2>
+    <input type="text" id="username" placeholder="Agent Codename" />
+    <br><br>
+    <button onclick="joinGame()">Join Mission</button>
+  </div>
+</div>
+
+<div id="gameInterface">
+  <div id="missionOverlay">MISSION STARTING...</div>
+
+  <audio id="sysBeep" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1cb4d650e8.mp3" preload="auto"></audio>
+
+  <div>
+    <div class="card">
+      <div id="roundDisplay">Round: 0</div>
+      <div id="timerDisplay">Time Left: <span id="countdown">--</span> seconds</div>
+      <div><strong>Briefing:</strong></div>
+      <div id="questionText">Awaiting Intel...</div>
+    </div>
+
+    <div class="card">
+      <h3>Comms</h3>
+      <div id="chatbox"></div>
+      <input type="text" id="message" placeholder="Type a message" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <div class="card">
+      <h3>Vote Assignment</h3>
+      <div id="votePanel">
+        <button onclick="sendVote('Lizards')">Lizards</button>
+        <button onclick="sendVote('Spy')">Spy</button>
+        <button onclick="sendVote('Survival')">Survival</button>
+        <button onclick="sendVote('Supernatural')">Supernatural</button>
+        <button onclick="sendVote('Movies')">Movies</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Submit Answer</h3>
+      <input type="text" id="answer" placeholder="Enter your answer" />
+      <button onclick="submitAnswer()">Submit</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="card"><h3>Agents Online</h3><div id="userList">No agents online.</div></div>
+    <div class="card"><h3>Leaderboard</h3><ul id="scoreList"></ul></div>
+  </div>
+</div>
+
+<script>
+  let ws = new WebSocket("wss://aarj.ngrok.io/ws");
+  let hasJoined = false;
+  let roundCount = 0;
+  let canAnswer = false;
+  let countdown = 0;
+  let timerInterval = null;
+
+  const usernameInput = document.getElementById("username");
+  const messageInput = document.getElementById("message");
+  const answerInput = document.getElementById("answer");
+  const chatBox = document.getElementById("chatbox");
+  const questionText = document.getElementById("questionText");
+  const scoreList = document.getElementById("scoreList");
+  const userList = document.getElementById("userList");
+  const votePanel = document.getElementById("votePanel");
+  const missionOverlay = document.getElementById("missionOverlay");
+
+  function getUsername() {
+    return usernameInput.value.trim() || "Anon";
+  }
+
+  function joinGame() {
+    const name = getUsername();
+    if (!hasJoined && name !== "") {
+      ws.send(`Join:${name}`);
+      hasJoined = true;
+
+      document.getElementById("introScreen").style.display = "none";
+      document.getElementById("gameInterface").style.display = "grid";
+    }
+  }
+
+  function sendMessage() {
+    const msg = messageInput.value.trim();
+    if (msg) {
+      ws.send(`Chat:${getUsername()}:${msg}`);
+      messageInput.value = "";
+    }
+  }
+
+  function sendVote(topic) {
+    if (canAnswer) {
+      ws.send(`Vote:${getUsername()}:${topic}`);
+    }
+  }
+
+  function submitAnswer() {
+    if (!canAnswer) return;
+    const answer = answerInput.value.trim();
+    if (answer) {
+      ws.send(`Answer:${getUsername()}:${answer}`);
+      answerInput.value = "";
+    }
+  }
+
+  function startCountdown(seconds) {
+    clearInterval(timerInterval);
+    countdown = seconds;
+    document.getElementById("countdown").textContent = countdown;
+    timerInterval = setInterval(() => {
+      countdown--;
+      document.getElementById("countdown").textContent = countdown;
+      if (countdown <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById("countdown").textContent = "0";
+      }
+    }, 1000);
+  }
+
+  function showSystemMessage(text) {
+    const div = document.createElement("div");
+    div.className = "message";
+    div.style.fontStyle = "italic";
+    div.textContent = "[SYSTEM] " + text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    document.getElementById("sysBeep").play().catch(() => {});
+  }
+
+  ws.onmessage = (event) => {
+    const msg = event.data;
+
+    if (msg.startsWith("Question:")) {
+      questionText.textContent = msg.slice(9).trim();
+    } else if (msg.startsWith("Leaderboard:")) {
+      const lines = msg.split("\n").slice(1).filter(line => line.trim() !== "");
+      scoreList.innerHTML = lines.map(line => `<li>${line}</li>`).join("");
+    } else if (msg.startsWith("Users:")) {
+      const users = msg.slice(6).split(",").filter(u => !u.startsWith("client_"));
+      userList.innerHTML = users.map(user => `<div>${user}</div>`).join("");
+    } else if (msg.includes("Vote now")) {
+      roundCount++;
+      document.getElementById("roundDisplay").textContent = "Round: " + roundCount;
+      startCountdown(30);
+      canAnswer = true;
+      votePanel.style.display = "block";
+      missionOverlay.style.display = "none";
+    } else if (msg.includes("Time's up")) {
+      canAnswer = false;
+      votePanel.style.display = "none";
+      showSystemMessage("Time's up!");
+    } else if (msg.includes("MISSION STARTING")) {
+      canAnswer = false;
+      votePanel.style.display = "none";
+      missionOverlay.style.display = "block";
+      showSystemMessage("MISSION STARTING...");
+    } else {
+      const sender = msg.split(":")[0];
+      if (!sender.startsWith("client_")) {
+        const div = document.createElement("div");
+        div.className = "message";
+        div.textContent = msg;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+  };
+
+  messageInput.addEventListener("keyup", e => e.key === "Enter" && sendMessage());
+  answerInput?.addEventListener("keyup", e => e.key === "Enter" && submitAnswer());
+</script>
+</body>
+</html>
