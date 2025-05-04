@@ -4,7 +4,7 @@
 
 ---
 
-Features
+**Features**
 
 - **Agent Lobby & Voting**  
   Players join with a codename, chat in real‑time, and vote on one of the topic categories each round.
@@ -23,7 +23,7 @@ Features
 
 ---
 
-Tech Stack
+**Tech Stack**
 
 | Layer              | Technology                              |
 |--------------------|-----------------------------------------|
