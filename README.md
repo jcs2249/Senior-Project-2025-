@@ -1,6 +1,6 @@
-Senior Project Spring 2025 - Joseph Saponaro, Robert Bossert, Ava McFadden, Andrew Barrera
+**Senior Project Spring 2025 - Joseph Saponaro, Robert Bossert, Ava McFadden, Andrew Barrera**
 
-Inteller: a spy‑themed, real‑time trivia experience where players join via a web client, vote on topics, submit answers, and the game host (built in Unity) orchestrates rounds, timers, and leaderboards.
+**Inteller**: a spy‑themed, real‑time trivia experience where players join via a web client, vote on topics, and submit answers, and the game host (built in Unity) orchestrates rounds, timers, and leaderboards.
 
 ---
 
